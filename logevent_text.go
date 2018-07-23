@@ -1,20 +1,5 @@
 package golog
 
-import (
-	"bytes"
-	"sync"
-)
-
-var bufferPool *sync.Pool
-
-func init() {
-	bufferPool = &sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
-	}
-}
-
 // TextLogEvent
 type TextLogEvent struct {
 	Event string
@@ -31,29 +16,9 @@ func (logEvent TextLogEvent) Encode(metadata *LogEventMetadata) []byte {
 				metadata.GetSourceLine() + ") " +
 					logEvent.Event
 
-
-		// get buffer from bufferPool
-		buffer := bufferPool.Get().(*bytes.Buffer)
-		buffer.WriteString(data)
-
-		// release
-		defer func() {
-			buffer.Reset()
-			bufferPool.Put(buffer)
-		}()
-
-		return buffer.Bytes()
+					return []byte(data)
 	}
 
-	// get buffer from bufferPool
-	buffer := bufferPool.Get().(*bytes.Buffer)
-	buffer.WriteString(logEvent.Event)
 
-	// release
-	defer func() {
-		buffer.Reset()
-		bufferPool.Put(buffer)
-	}()
-
-	return buffer.Bytes()
+	return []byte(logEvent.Event)
 }
