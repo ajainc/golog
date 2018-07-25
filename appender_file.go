@@ -1,9 +1,9 @@
 package golog
 
 import (
+	"fmt"
 	"os"
 	"sync"
-
 )
 
 // defaultBufferSize
@@ -56,8 +56,11 @@ func NewFileAppenderWithBufferSize(fileName string, bufferSize int) (asyncFileAp
 func (appender *FileAppender) Write(data []byte) (n int, err error) {
 	appender.mu.Lock()
 	defer appender.mu.Unlock()
-	data = append(data, '\n')
-	return appender.bufferedWriter.Write(data)
+	if appender.activated {
+		data = append(data, '\n')
+		return appender.bufferedWriter.Write(data)
+	}
+	return 0, fmt.Errorf("appender is closed")
 }
 
 // Close implements io.Closer

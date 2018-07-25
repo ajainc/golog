@@ -3,13 +3,14 @@ package golog
 import (
 	"os"
 	"os/signal"
-	"syscall"
 	"sync"
+	"syscall"
 )
 
 // RotatableFileAppender RotatableFileAppender struct
 type RotatableFileAppender struct {
 	*FileAppender
+	mu *sync.Mutex
 }
 
 // NewRotatableFileAppender returns new FileAppender
@@ -27,16 +28,16 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 
 	appender := &RotatableFileAppender{
 		FileAppender: fileAppender,
+		mu:           new(sync.Mutex),
 	}
 
 	hup := make(chan os.Signal, 1)
 	signal.Notify(hup, syscall.SIGHUP)
-	mutex := new(sync.Mutex)
 
 	go func() {
 		for {
 			<-hup
-			mutex.Lock()
+			appender.mu.Lock()
 
 			appender.FileAppender.Close()
 
@@ -46,7 +47,7 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 			}
 			appender.FileAppender = newAppender
 
-			mutex.Unlock()
+			appender.mu.Unlock()
 		}
 	}()
 
@@ -55,10 +56,14 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 
 // Write implements io.Write
 func (appender *RotatableFileAppender) Write(data []byte) (n int, err error) {
+	appender.mu.Lock()
+	defer appender.mu.Unlock()
 	return appender.FileAppender.Write(data)
 }
 
 // Close implements io.Closer
 func (appender *RotatableFileAppender) Close() error {
+	appender.mu.Lock()
+	defer appender.mu.Unlock()
 	return appender.FileAppender.Close()
 }
