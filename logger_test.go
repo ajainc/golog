@@ -52,7 +52,7 @@ func TestNewLogger(t *testing.T) {
 		logger := NewLogger("testLogger", LogLevel_TRACE)
 		appender := NewByteBufferAppender()
 		logger.SetAppender(appender)
-		logger.SInfo(JsonLogEvent{
+		logger.SInfo(&JsonLogEvent{
 			event: struct{
 				Name string `json:"name"`
 				Address string `json:"address"`
@@ -119,7 +119,7 @@ func BenchmarkLogger_text_to_buffer(b *testing.B) {
 	logger.DisableLogEventMetadata()
 
 	for i := 0; i< b.N; i++ {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event:"ssss"}.Encode(nil), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event:"ssss"}, nil, LogLevel_INFO)
 	}
 }
 

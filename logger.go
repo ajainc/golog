@@ -52,7 +52,7 @@ type Logger struct {
 }
 
 // doAppendIfLevelEnabled
-func (logger *Logger) doAppendIfLevelEnabled(event []byte, level LogLevel) {
+func (logger *Logger) doAppendIfLevelEnabled(logEvent LogEvent, metadata *LogEventMetadata, level LogLevel) {
 
 	// recover
 	defer func(writer io.Writer) {
@@ -62,6 +62,7 @@ func (logger *Logger) doAppendIfLevelEnabled(event []byte, level LogLevel) {
 	}(os.Stderr)
 
 	if appenders, ok := logger.levelAppender[level]; ok {
+		event := logEvent.Encode(metadata)
 		for _, appender := range appenders {
 			appender.Write(event)
 		}
@@ -83,9 +84,9 @@ func (logger *Logger) newMetadata(level LogLevel) LogEventMetadata {
 func (logger *Logger) Trace(string string) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_TRACE)
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(&metadata), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, &metadata, LogLevel_TRACE)
 	} else {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(nil), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, nil, LogLevel_TRACE)
 	}
 }
 
@@ -93,9 +94,9 @@ func (logger *Logger) Trace(string string) {
 func (logger *Logger) Debug(string string) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_DEBUG)
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(&metadata), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, &metadata, LogLevel_DEBUG)
 	} else {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(nil), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, nil, LogLevel_DEBUG)
 	}
 }
 
@@ -103,9 +104,9 @@ func (logger *Logger) Debug(string string) {
 func (logger *Logger) Info(string string) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_INFO)
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(&metadata), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, &metadata, LogLevel_INFO)
 	} else {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(nil), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, nil, LogLevel_INFO)
 	}
 }
 
@@ -113,9 +114,9 @@ func (logger *Logger) Info(string string) {
 func (logger *Logger) Warn(string string) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_WARN)
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(&metadata), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, &metadata, LogLevel_WARN)
 	} else {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(nil), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string},nil, LogLevel_WARN)
 	}
 }
 
@@ -123,9 +124,9 @@ func (logger *Logger) Warn(string string) {
 func (logger *Logger) Error(string string) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_ERROR)
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(&metadata), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, &metadata, LogLevel_ERROR)
 	} else {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(nil), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, nil, LogLevel_ERROR)
 	}
 }
 
@@ -133,9 +134,9 @@ func (logger *Logger) Error(string string) {
 func (logger *Logger) Fatal(string string) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_FATAL)
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(&metadata), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, &metadata, LogLevel_FATAL)
 	} else {
-		logger.doAppendIfLevelEnabled(TextLogEvent{Event: string}.Encode(nil), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(&TextLogEvent{Event: string}, nil, LogLevel_FATAL)
 	}
 
 	logger.Close()
@@ -146,9 +147,9 @@ func (logger *Logger) Fatal(string string) {
 func (logger *Logger) Tracef(format string, args ...interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_TRACE)
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(&metadata), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, &metadata, LogLevel_TRACE)
 	} else {
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(nil), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, nil, LogLevel_TRACE)
 	}
 }
 
@@ -156,9 +157,9 @@ func (logger *Logger) Tracef(format string, args ...interface{}) {
 func (logger *Logger) Debugf(format string, args ...interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_DEBUG)
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(&metadata), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, &metadata, LogLevel_DEBUG)
 	} else {
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(nil), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, nil, LogLevel_DEBUG)
 	}
 }
 
@@ -166,9 +167,9 @@ func (logger *Logger) Debugf(format string, args ...interface{}) {
 func (logger *Logger) Infof(format string, args ...interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_INFO)
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(&metadata), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, &metadata, LogLevel_INFO)
 	} else {
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(nil), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, nil, LogLevel_INFO)
 	}
 }
 
@@ -176,9 +177,9 @@ func (logger *Logger) Infof(format string, args ...interface{}) {
 func (logger *Logger) Warnf(format string, args ...interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_WARN)
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(&metadata), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, &metadata, LogLevel_WARN)
 	} else {
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(nil), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, nil, LogLevel_WARN)
 	}
 }
 
@@ -186,9 +187,9 @@ func (logger *Logger) Warnf(format string, args ...interface{}) {
 func (logger *Logger) Errorf(format string, args ...interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_ERROR)
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(&metadata), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, &metadata, LogLevel_ERROR)
 	} else {
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(nil), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, nil, LogLevel_ERROR)
 	}
 }
 
@@ -196,9 +197,9 @@ func (logger *Logger) Errorf(format string, args ...interface{}) {
 func (logger *Logger) Fatalf(format string, args ...interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_FATAL)
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(&metadata), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, &metadata, LogLevel_FATAL)
 	} else {
-		logger.doAppendIfLevelEnabled(FormatLogEvent{format: format, args: args,}.Encode(nil), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(&FormatLogEvent{format: format, args: args,}, nil, LogLevel_FATAL)
 	}
 
 	logger.Close()
@@ -209,9 +210,9 @@ func (logger *Logger) Fatalf(format string, args ...interface{}) {
 func (logger *Logger) Tracej(obj interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_TRACE)
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(&metadata), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, &metadata, LogLevel_TRACE)
 	} else {
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(nil), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, nil, LogLevel_TRACE)
 	}
 }
 
@@ -219,9 +220,9 @@ func (logger *Logger) Tracej(obj interface{}) {
 func (logger *Logger) Debugj(obj interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_DEBUG)
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(&metadata), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, &metadata, LogLevel_DEBUG)
 	} else {
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(nil), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, nil, LogLevel_DEBUG)
 	}
 }
 
@@ -229,9 +230,9 @@ func (logger *Logger) Debugj(obj interface{}) {
 func (logger *Logger) Infoj(obj interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_INFO)
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(&metadata), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, &metadata, LogLevel_INFO)
 	} else {
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(nil), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, nil, LogLevel_INFO)
 	}
 }
 
@@ -239,9 +240,9 @@ func (logger *Logger) Infoj(obj interface{}) {
 func (logger *Logger) Warnj(obj interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_WARN)
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(&metadata), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, &metadata, LogLevel_WARN)
 	} else {
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(nil), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, nil, LogLevel_WARN)
 	}
 }
 
@@ -249,9 +250,9 @@ func (logger *Logger) Warnj(obj interface{}) {
 func (logger *Logger) Errorj(obj interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_ERROR)
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(&metadata), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, &metadata, LogLevel_ERROR)
 	} else {
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(nil), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, nil, LogLevel_ERROR)
 	}
 }
 
@@ -259,9 +260,9 @@ func (logger *Logger) Errorj(obj interface{}) {
 func (logger *Logger) Fatalj(obj interface{}) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_FATAL)
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(&metadata), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, &metadata, LogLevel_FATAL)
 	} else {
-		logger.doAppendIfLevelEnabled(JsonLogEvent{event: obj,}.Encode(nil), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(&JsonLogEvent{event: obj,}, nil, LogLevel_FATAL)
 	}
 
 	logger.Close()
@@ -272,9 +273,9 @@ func (logger *Logger) Fatalj(obj interface{}) {
 func (logger *Logger) STrace(logEvent LogEvent) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_TRACE)
-		logger.doAppendIfLevelEnabled(logEvent.Encode(&metadata), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(logEvent, &metadata, LogLevel_TRACE)
 	} else {
-		logger.doAppendIfLevelEnabled(logEvent.Encode(nil), LogLevel_TRACE)
+		logger.doAppendIfLevelEnabled(logEvent, nil, LogLevel_TRACE)
 	}
 }
 
@@ -282,9 +283,9 @@ func (logger *Logger) STrace(logEvent LogEvent) {
 func (logger *Logger) SDebug(logEvent LogEvent) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_DEBUG)
-		logger.doAppendIfLevelEnabled(logEvent.Encode(&metadata), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(logEvent, &metadata, LogLevel_DEBUG)
 	} else {
-		logger.doAppendIfLevelEnabled(logEvent.Encode(nil), LogLevel_DEBUG)
+		logger.doAppendIfLevelEnabled(logEvent, nil, LogLevel_DEBUG)
 	}
 }
 
@@ -292,9 +293,9 @@ func (logger *Logger) SDebug(logEvent LogEvent) {
 func (logger *Logger) SInfo(logEvent LogEvent) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_INFO)
-		logger.doAppendIfLevelEnabled(logEvent.Encode(&metadata), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(logEvent, &metadata, LogLevel_INFO)
 	} else {
-		logger.doAppendIfLevelEnabled(logEvent.Encode(nil), LogLevel_INFO)
+		logger.doAppendIfLevelEnabled(logEvent, nil, LogLevel_INFO)
 	}
 }
 
@@ -302,9 +303,9 @@ func (logger *Logger) SInfo(logEvent LogEvent) {
 func (logger *Logger) SWarn(logEvent LogEvent) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_WARN)
-		logger.doAppendIfLevelEnabled(logEvent.Encode(&metadata), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(logEvent, &metadata, LogLevel_WARN)
 	} else {
-		logger.doAppendIfLevelEnabled(logEvent.Encode(nil), LogLevel_WARN)
+		logger.doAppendIfLevelEnabled(logEvent, nil, LogLevel_WARN)
 	}
 }
 
@@ -312,9 +313,9 @@ func (logger *Logger) SWarn(logEvent LogEvent) {
 func (logger *Logger) SError(logEvent LogEvent) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_ERROR)
-		logger.doAppendIfLevelEnabled(logEvent.Encode(&metadata), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(logEvent, &metadata, LogLevel_ERROR)
 	} else {
-		logger.doAppendIfLevelEnabled(logEvent.Encode(nil), LogLevel_ERROR)
+		logger.doAppendIfLevelEnabled(logEvent, nil, LogLevel_ERROR)
 	}
 }
 
@@ -322,9 +323,9 @@ func (logger *Logger) SError(logEvent LogEvent) {
 func (logger *Logger) SFatal(logEvent LogEvent) {
 	if logger.enabledMetadata {
 		metadata := logger.newMetadata(LogLevel_FATAL)
-		logger.doAppendIfLevelEnabled(logEvent.Encode(&metadata), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(logEvent, &metadata, LogLevel_FATAL)
 	} else {
-		logger.doAppendIfLevelEnabled(logEvent.Encode(nil), LogLevel_FATAL)
+		logger.doAppendIfLevelEnabled(logEvent, nil, LogLevel_FATAL)
 	}
 
 	logger.Close()
