@@ -11,7 +11,7 @@ type FormatLogEvent struct {
 }
 
 // Encode implements LogEvent.Encode
-func (event FormatLogEvent) Encode(metadata *LogEventMetadata) []byte {
+func (event *FormatLogEvent) Encode(metadata *LogEventMetadata) []byte {
 	// delegate to Text log Event
-	return TextLogEvent{Event: fmt.Sprintf(event.format, event.args...),}.Encode(metadata)
+	return (&TextLogEvent{Event: fmt.Sprintf(event.format, event.args...),}).Encode(metadata)
 }

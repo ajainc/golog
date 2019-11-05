@@ -6,7 +6,7 @@ type TextLogEvent struct {
 }
 
 // Encode implements LogEvent.Encode
-func (logEvent TextLogEvent) Encode(metadata *LogEventMetadata) []byte {
+func (logEvent *TextLogEvent) Encode(metadata *LogEventMetadata) []byte {
 	if metadata != nil {
 
 		data := metadata.GetLogLevel() + " " +

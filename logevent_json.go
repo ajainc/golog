@@ -15,7 +15,7 @@ type JsonLogEvent struct {
 }
 
 // Encode is implementation of LogEvent.Encode
-func (jsonLogEvent JsonLogEvent) Encode(data *LogEventMetadata) []byte {
+func (jsonLogEvent *JsonLogEvent) Encode(data *LogEventMetadata) []byte {
 
 	if data == nil {
 		// encode json

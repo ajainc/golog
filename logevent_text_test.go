@@ -13,7 +13,7 @@ func TestTextLogEvent_Encode(t *testing.T) {
 			return "[timestamp]"
 		}
 		expected := `[TRACE] [timestamp] defaultLogger logevent_text_test.go(11) test`
-		buf := TextLogEvent{Event: "test"}.Encode(metadata)
+		buf := (&TextLogEvent{Event: "test"}).Encode(metadata)
 		assert.Equal(t, expected, string(buf))
 	}()
 }
