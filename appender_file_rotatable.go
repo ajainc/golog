@@ -5,12 +5,16 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
+
+var defaultFlushInterval = time.Minute * 5
 
 // RotatableFileAppender RotatableFileAppender struct
 type RotatableFileAppender struct {
 	*FileAppender
-	mu *sync.Mutex
+	mu     *sync.Mutex
+	ticker *time.Ticker
 }
 
 // NewRotatableFileAppender returns new FileAppender
@@ -20,6 +24,11 @@ func NewRotatableFileAppender(fileName string) (asyncFileAppender *RotatableFile
 
 // NewRotatableFileAppenderWithBufferSize returns new FileAppender
 func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (asyncFileAppender *RotatableFileAppender, err error) {
+	return NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, defaultFlushInterval)
+}
+
+// NewRotatableFileAppenderWithBufferSize returns new FileAppender
+func NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName string, bufferSize int, flushInterval time.Duration) (asyncFileAppender *RotatableFileAppender, err error) {
 
 	fileAppender, err := NewFileAppenderWithBufferSize(fileName, bufferSize)
 	if err != nil {
@@ -29,6 +38,7 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 	appender := &RotatableFileAppender{
 		FileAppender: fileAppender,
 		mu:           new(sync.Mutex),
+		ticker:       time.NewTicker(flushInterval),
 	}
 
 	hup := make(chan os.Signal, 1)
@@ -36,9 +46,12 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 
 	go func() {
 		for {
-			<-hup
-			appender.mu.Lock()
+			select {
+			case <-hup:
+			case <-appender.ticker.C:
+			}
 
+			appender.mu.Lock()
 			appender.FileAppender.Close()
 
 			newAppender, err := NewFileAppenderWithBufferSize(fileName, bufferSize)
@@ -65,5 +78,6 @@ func (appender *RotatableFileAppender) Write(data []byte) (n int, err error) {
 func (appender *RotatableFileAppender) Close() error {
 	appender.mu.Lock()
 	defer appender.mu.Unlock()
+	appender.ticker.Stop()
 	return appender.FileAppender.Close()
 }
