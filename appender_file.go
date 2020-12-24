@@ -1,13 +1,17 @@
 package golog
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
+	"time"
 )
 
 // defaultBufferSize
 const defaultBufferSize = 4096
+
+const defaultFlushInterval = time.Minute * 5
 
 // FileAppender
 type FileAppender struct {
@@ -15,25 +19,17 @@ type FileAppender struct {
 	bufferedWriter *bufferedWriter
 	mu             *sync.Mutex
 	activated      bool
+	ticker         *time.Ticker
+	stopTicker     context.CancelFunc
 }
 
 // NewFileAppender returns new FileAppender
 func NewFileAppender(fileName string) (asyncFileAppender *FileAppender, err error) {
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return nil, err
-	}
-
-	return &FileAppender{
-		file:           file,
-		bufferedWriter: newBufferedWriter(file, withBufferSize(defaultBufferSize)),
-		mu:             new(sync.Mutex),
-		activated:      true,
-	}, nil
+	return NewFileAppenderWithBufferSizeAndFlushInterval(fileName, defaultBufferSize, defaultFlushInterval)
 }
 
-// NewFileAppender returns new FileAppender
-func NewFileAppenderWithBufferSize(fileName string, bufferSize int) (asyncFileAppender *FileAppender, err error) {
+// NewFileAppenderWithBufferSizeAndFlushInterval returns new FileAppender
+func NewFileAppenderWithBufferSizeAndFlushInterval(fileName string, bufferSize int, flushInterval time.Duration) (asyncFileAppender *FileAppender, err error) {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
@@ -44,12 +40,34 @@ func NewFileAppenderWithBufferSize(fileName string, bufferSize int) (asyncFileAp
 		size = bufferSize
 	}
 
-	return &FileAppender{
+	ctx, cancel := context.WithCancel(context.Background())
+	appender := &FileAppender{
 		file:           file,
 		bufferedWriter: newBufferedWriter(file, withBufferSize(size)),
 		mu:             new(sync.Mutex),
 		activated:      true,
-	}, nil
+		ticker:         time.NewTicker(flushInterval),
+		stopTicker:     cancel,
+	}
+
+	go func() {
+		for {
+			select {
+			case <-appender.ticker.C:
+			case <-ctx.Done():
+			}
+			appender.mu.Lock()
+			if !appender.activated {
+				appender.ticker.Stop()
+				appender.mu.Unlock()
+				return
+			}
+			appender.bufferedWriter.Flush()
+			appender.mu.Unlock()
+		}
+	}()
+
+	return appender, nil
 }
 
 // Write implements io.Write
@@ -67,8 +85,9 @@ func (appender *FileAppender) Write(data []byte) (n int, err error) {
 func (appender *FileAppender) Close() error {
 	appender.mu.Lock()
 	defer func() {
-		appender.mu.Unlock()
 		appender.activated = false
+		appender.stopTicker()
+		appender.mu.Unlock()
 	}()
 
 	if appender.activated {

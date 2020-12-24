@@ -8,13 +8,10 @@ import (
 	"time"
 )
 
-var defaultFlushInterval = time.Minute * 5
-
 // RotatableFileAppender RotatableFileAppender struct
 type RotatableFileAppender struct {
 	*FileAppender
-	mu     *sync.Mutex
-	ticker *time.Ticker
+	mu *sync.Mutex
 }
 
 // NewRotatableFileAppender returns new FileAppender
@@ -27,10 +24,10 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 	return NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, defaultFlushInterval)
 }
 
-// NewRotatableFileAppenderWithBufferSize returns new FileAppender
+// NewRotatableFileAppenderWithBufferSizeAndFlushInterval returns new FileAppender
 func NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName string, bufferSize int, flushInterval time.Duration) (asyncFileAppender *RotatableFileAppender, err error) {
 
-	fileAppender, err := NewFileAppenderWithBufferSize(fileName, bufferSize)
+	fileAppender, err := NewFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, flushInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +35,6 @@ func NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName string, buf
 	appender := &RotatableFileAppender{
 		FileAppender: fileAppender,
 		mu:           new(sync.Mutex),
-		ticker:       time.NewTicker(flushInterval),
 	}
 
 	hup := make(chan os.Signal, 1)
@@ -46,15 +42,12 @@ func NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName string, buf
 
 	go func() {
 		for {
-			select {
-			case <-hup:
-			case <-appender.ticker.C:
-			}
-
+			<-hup
 			appender.mu.Lock()
+
 			appender.FileAppender.Close()
 
-			newAppender, err := NewFileAppenderWithBufferSize(fileName, bufferSize)
+			newAppender, err := NewFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, flushInterval)
 			if err != nil {
 				panic(err)
 			}
@@ -78,6 +71,5 @@ func (appender *RotatableFileAppender) Write(data []byte) (n int, err error) {
 func (appender *RotatableFileAppender) Close() error {
 	appender.mu.Lock()
 	defer appender.mu.Unlock()
-	appender.ticker.Stop()
 	return appender.FileAppender.Close()
 }
