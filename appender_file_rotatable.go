@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // RotatableFileAppender RotatableFileAppender struct
@@ -20,8 +21,13 @@ func NewRotatableFileAppender(fileName string) (asyncFileAppender *RotatableFile
 
 // NewRotatableFileAppenderWithBufferSize returns new FileAppender
 func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (asyncFileAppender *RotatableFileAppender, err error) {
+	return NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, defaultFlushInterval)
+}
 
-	fileAppender, err := NewFileAppenderWithBufferSize(fileName, bufferSize)
+// NewRotatableFileAppenderWithBufferSizeAndFlushInterval returns new FileAppender
+func NewRotatableFileAppenderWithBufferSizeAndFlushInterval(fileName string, bufferSize int, flushInterval time.Duration) (asyncFileAppender *RotatableFileAppender, err error) {
+
+	fileAppender, err := NewFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, flushInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +47,7 @@ func NewRotatableFileAppenderWithBufferSize(fileName string, bufferSize int) (as
 
 			appender.FileAppender.Close()
 
-			newAppender, err := NewFileAppenderWithBufferSize(fileName, bufferSize)
+			newAppender, err := NewFileAppenderWithBufferSizeAndFlushInterval(fileName, bufferSize, flushInterval)
 			if err != nil {
 				panic(err)
 			}
